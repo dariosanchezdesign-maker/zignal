@@ -20,8 +20,8 @@ export function diagnoseOutcome(o: QueryOutcome, businessName: string, insights:
   const winner = o.winner;
   const yours = new Set(you?.rationale ?? []);
   const linked = insights.find((i) => i.query_ids.includes(o.query.id) && i.status !== "completed");
-  const value = o.query.commercial_value === "very-high" || o.query.commercial_value === "high" ? "high-value" : "lower-value";
-  const link = linked ? ` It is evidence for the opportunity “${linked.title}”.` : "";
+  const value = o.query.commercial_value === "very-high" || o.query.commercial_value === "high" ? "valuable" : "early-stage";
+  const link = linked ? ` Related next step: “${linked.title}”.` : "";
 
   if (you?.position === 1) {
     const challenger = o.recommendations.find((r) => r.recommended && r.position === 2);

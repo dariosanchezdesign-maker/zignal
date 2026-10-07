@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { FlaskConical, Play } from "lucide-react";
+import { FlaskConical, Play, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button, Delta } from "./ui";
 
@@ -13,7 +13,7 @@ const fmt = (iso: string) =>
  * Simulation mode. "Run new simulation" re-runs every query, re-extracts
  * recommendations, recalculates metrics and adds a snapshot to history.
  */
-export function SimulationControl({ variant = "card" }: { variant?: "card" | "sidebar" }) {
+export function SimulationControl({ variant = "card" }: { variant?: "card" | "sidebar" | "button" }) {
   const { ws, runSimulation } = useStore();
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -49,6 +49,32 @@ export function SimulationControl({ variant = "card" }: { variant?: "card" | "si
   }
 
   const processed = Math.floor(progress * ws.queries.length);
+
+  if (variant === "button") {
+    return (
+      <div className="relative">
+        <button
+          onClick={run}
+          disabled={running}
+          className="focus-ring inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-ink-150 bg-white px-3 text-[13px] font-medium text-ink-800 shadow-card transition-colors hover:border-ink-300 disabled:opacity-70"
+        >
+          <RefreshCw className={clsx("h-3.5 w-3.5", running && "animate-spin")} />
+          <span className="hidden sm:inline">{running ? `Re-checking ${processed}/${ws.queries.length}` : "Re-check now"}</span>
+        </button>
+        {lastDelta !== null && !running && (
+          <div className="absolute right-0 top-full z-40 mt-2 w-64 animate-fade-up rounded-xl border border-ink-150 bg-white p-3 text-[12.5px] shadow-pop">
+            <div className="font-semibold text-ink-900">Re-checked {ws.queries.length} questions</div>
+            <div className="mt-0.5 text-ink-600">
+              AI now recommends you in {Math.round(ws.you.recommendation_rate * 10)} of 10. Score {ws.you.score} <Delta value={lastDelta} suffix=" pts" />
+            </div>
+            <button onClick={() => setLastDelta(null)} className="mt-2 text-[12px] font-medium text-ink-500 hover:text-ink-900">
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (variant === "sidebar") {
     return (

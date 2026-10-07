@@ -7,9 +7,9 @@ import { useStore } from "@/lib/store";
 import type { CommercialValue, IntentType, QueryOutcome, Severity } from "@/lib/model/types";
 import { COMMERCIAL_LABEL } from "@/lib/engine/queries";
 import { YOU } from "@/lib/engine/insights";
-import { RunDrawer } from "@/components/run-detail";
+import { ConversationCard, ConversationDrawer } from "@/components/conversation";
 import { PositionPill } from "@/components/recommendation-view";
-import { Button, ImpactBadge, INTENT_LABEL, PageHeader, TrustLabel, ValueBadge } from "@/components/ui";
+import { Button, ImpactBadge, INTENT_LABEL, PageHeader, Segmented, ValueBadge } from "@/components/ui";
 
 type Vis = "all" | "recommended" | "mentioned" | "absent";
 type Pos = "all" | "1" | "top3" | "4plus" | "none";
@@ -26,6 +26,9 @@ export default function QueryExplorer() {
   const [opp, setOpp] = useState<Severity | "all">("all");
   const [open, setOpen] = useState<QueryOutcome | null>(null);
   const [sort, setSort] = useState<"default" | "value" | "position" | "opportunity">("default");
+  const [view, setView] = useState<"cards" | "table">("cards");
+  const [simple, setSimple] = useState<"all" | "yes" | "no" | "ready">("all");
+  const [limit, setLimit] = useState(12);
 
   const locations = useMemo(() => Array.from(new Set(ws.queries.map((q) => q.geography))), [ws]);
   const winners = useMemo(() => Array.from(new Set(ws.outcomes.map((o) => o.winner.business_name))).sort(), [ws]);
@@ -35,6 +38,9 @@ export default function QueryExplorer() {
     const filtered = ws.outcomes.filter((o) => {
       const q = o.query;
       if (s && !q.text.toLowerCase().includes(s)) return false;
+      if (simple === "yes" && !o.you?.recommended) return false;
+      if (simple === "no" && o.you?.recommended) return false;
+      if (simple === "ready" && q.commercial_weight < 60) return false;
       if (intent !== "all" && q.intent_type !== intent) return false;
       if (location !== "all" && q.geography !== location) return false;
       if (value !== "all" && q.commercial_value !== value) return false;
@@ -55,7 +61,7 @@ export default function QueryExplorer() {
     if (sort === "position") filtered.sort((a, b) => (a.you?.position ?? 9) - (b.you?.position ?? 9));
     if (sort === "opportunity") filtered.sort((a, b) => rank[a.opportunity] - rank[b.opportunity] || b.query.commercial_weight - a.query.commercial_weight);
     return filtered;
-  }, [ws, search, intent, location, value, vis, pos, competitor, opp, sort]);
+  }, [ws, search, intent, location, value, vis, pos, competitor, opp, sort, simple]);
 
   const activeFilters = [intent, location, value, vis, pos, competitor, opp].filter((f) => f !== "all").length + (search ? 1 : 0);
   const reset = () => {
@@ -88,29 +94,88 @@ export default function QueryExplorer() {
   return (
     <div>
       <PageHeader
-        title="Query Explorer"
-        description="Every query in the latest simulation, what AI answered, and where you stand. Click a row to see the full AI run."
+        title="Questions"
+        description="The questions your customers ask AI, and what AI answered."
         action={
-          process.env.NEXT_PUBLIC_EMBED === "1" ? undefined : (
-            <Button variant="secondary" size="sm" onClick={exportCsv}>
-              <Download className="h-3.5 w-3.5" /> Export CSV
-            </Button>
-          )
+          <div className="flex items-center gap-2">
+            <Segmented<"cards" | "table">
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "cards", label: "Answers" },
+                { value: "table", label: "Table" },
+              ]}
+            />
+            {view === "table" && process.env.NEXT_PUBLIC_EMBED !== "1" && (
+              <Button variant="secondary" size="sm" onClick={exportCsv}>
+                <Download className="h-3.5 w-3.5" /> CSV
+              </Button>
+            )}
+          </div>
         }
       />
 
-      <div className="card mb-4 p-3 sm:p-4">
-        <div className="relative">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
           <input
             id="query-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search queries…"
-            className="focus-ring h-10 w-full rounded-[10px] border border-ink-150 bg-ink-50 pl-9 pr-3 text-[14px] placeholder:text-ink-400 focus:bg-white"
+            placeholder="Search questions…"
+            className="focus-ring h-10 w-full rounded-[10px] border border-ink-150 bg-white pl-9 pr-3 text-[14px] placeholder:text-ink-400"
           />
         </div>
-        <div className="scrollbar-none -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-0.5">
+        <div className="scrollbar-none flex gap-1.5 overflow-x-auto">
+          {(
+            [
+              ["all", "All"],
+              ["yes", "AI recommends you"],
+              ["no", "AI picks someone else"],
+              ["ready", "Ready to buy"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setSimple(k)}
+              className={clsx(
+                "focus-ring h-9 shrink-0 rounded-full border px-3.5 text-[13px] font-medium",
+                simple === k ? "border-ink-900 bg-ink-900 text-white" : "border-ink-200 bg-white text-ink-700 hover:border-ink-300",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "cards" ? (
+        <>
+          <p className="mb-3 px-1 text-[13px] text-ink-500">
+            {rows.length} questions · AI recommends you in {recommendedCount}
+          </p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {rows.slice(0, limit).map((o) => (
+              <ConversationCard key={o.query.id} o={o} onOpen={() => setOpen(o)} />
+            ))}
+          </div>
+          {rows.length > limit && (
+            <div className="mt-5 flex justify-center">
+              <Button variant="secondary" onClick={() => setLimit(limit + 12)}>
+                Show more ({rows.length - limit} left)
+              </Button>
+            </div>
+          )}
+          {!rows.length && (
+            <div className="card">
+              <Empty onReset={reset} />
+            </div>
+          )}
+        </>
+      ) : (
+      <>
+      <div className="card mb-4 p-3 sm:p-4">
+        <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
           <Select label="Intent" value={intent} onChange={(v) => setIntent(v as IntentType | "all")} options={(Object.keys(INTENT_LABEL) as IntentType[]).map((i) => ({ value: i, label: INTENT_LABEL[i] }))} />
           <Select label="Location" value={location} onChange={setLocation} options={locations.map((l) => ({ value: l, label: l }))} />
           <Select
@@ -162,9 +227,8 @@ export default function QueryExplorer() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[12.5px] text-ink-500">
         <span className="flex items-center gap-2">
           <span>
-            <span className="num font-semibold text-ink-900">{rows.length}</span> queries · <span className="num font-semibold text-ink-900">{recommendedCount}</span> recommend you
+            <span className="num font-semibold text-ink-900">{rows.length}</span> questions · AI recommends you in <span className="num font-semibold text-ink-900">{recommendedCount}</span>
           </span>
-          <TrustLabel kind="simulated" />
         </span>
         <label className="flex items-center gap-2">
           Sort
@@ -243,7 +307,10 @@ export default function QueryExplorer() {
         )}
       </div>
 
-      <RunDrawer outcome={open} ws={ws} onClose={() => setOpen(null)} />
+      </>
+      )}
+
+      <ConversationDrawer outcome={open} ws={ws} onClose={() => setOpen(null)} />
     </div>
   );
 }
@@ -296,7 +363,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 function Empty({ onReset }: { onReset: () => void }) {
   return (
     <div className="p-10 text-center">
-      <div className="text-[14px] font-medium">No queries match these filters</div>
+      <div className="text-[14px] font-medium">No questions match these filters</div>
       <button onClick={onReset} className="mt-2 text-[13px] text-ink-500 underline underline-offset-4 hover:text-ink-900">
         Clear filters
       </button>

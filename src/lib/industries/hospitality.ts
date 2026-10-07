@@ -77,7 +77,7 @@ export const hospitality: IndustryConfig = {
   categories: [
     { id: "best-of", label: "Best-of lists" },
     { id: "romance", label: "Romance & occasions" },
-    { id: "family", label: "Families" },
+    { id: "family", label: "Family" },
     { id: "luxury", label: "Luxury" },
     { id: "value", label: "Value" },
     { id: "location", label: "Location" },

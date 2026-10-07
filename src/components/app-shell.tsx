@@ -11,29 +11,25 @@ import {
   ChevronsUpDown,
   FileText,
   LayoutGrid,
-  ListFilter,
+  ListChecks,
   LogOut,
-  MoreHorizontal,
+  MessageSquare,
   Plus,
   Settings,
   Swords,
-  Target,
-  X,
 } from "lucide-react";
-import { useStore, type RangeDays } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { getIndustry } from "@/lib/industries";
-import { Logo, Segmented, TrustLabel } from "./ui";
+import { Logo, TrustLabel } from "./ui";
 import type { Business } from "@/lib/model/types";
 import type { Workspace } from "@/lib/engine/workspace";
 import { SimulationControl } from "./simulation-control";
 
 const NAV = [
-  { href: "/app", label: "Overview", icon: LayoutGrid },
-  { href: "/app/visibility", label: "AI Visibility", icon: BarChart3 },
-  { href: "/app/queries", label: "Queries", icon: ListFilter },
+  { href: "/app", label: "Home", icon: LayoutGrid },
+  { href: "/app/queries", label: "Questions", icon: MessageSquare },
   { href: "/app/competitors", label: "Competitors", icon: Swords },
-  { href: "/app/opportunities", label: "Opportunities", icon: Target },
-  { href: "/app/reports", label: "Reports", icon: FileText },
+  { href: "/app/opportunities", label: "Next steps", icon: ListChecks },
 ];
 
 const isActive = (path: string, href: string) => (href === "/app" ? path === "/app" : path.startsWith(href));
@@ -57,9 +53,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink key={n.href} {...n} active={isActive(path, n.href)} />
           ))}
           <div className="!my-4 mx-2.5 h-px bg-ink-150" />
-          <NavLink href="/app/settings" label="Settings" icon={Settings} active={path.startsWith("/app/settings")} />
+          <NavLink href="/app/visibility" label="Full analysis" icon={BarChart3} active={path.startsWith("/app/visibility")} />
         </nav>
-        {hydrated && <SimulationControl variant="sidebar" />}
       </aside>
 
       <div className="lg:pl-[232px]">
@@ -69,11 +64,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-4 py-2 text-[12.5px] text-ink-600 sm:px-8">
               <span className="flex items-center gap-2">
                 <TrustLabel kind="demo" />
-                <span className="hidden sm:inline">Fictional businesses. All results are simulated AI tests, not live observations.</span>
+                <span className="hidden sm:inline">Fictional business. Results are simulated AI tests, not live AI answers.</span>
               </span>
               <Link href="/signup" className="shrink-0 font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
                 Scan your business
               </Link>
+            </div>
+          </div>
+        )}
+        {hydrated && !active.is_demo && (
+          <div className="no-print border-b border-ink-150 bg-white/60">
+            <div className="mx-auto max-w-[1240px] px-4 py-2 text-[12.5px] text-ink-500 sm:px-8">
+              Results are simulated AI tests, not live AI answers yet.
             </div>
           </div>
         )}
@@ -132,7 +134,6 @@ function useClickOutside(onClose: () => void) {
 }
 
 function TopBar() {
-  const { range, setRange } = useStore();
   return (
     <header className="no-print sticky top-0 z-20 border-b border-ink-150 bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-[1240px] items-center gap-2 px-4 sm:h-16 sm:gap-3 sm:px-8">
@@ -146,17 +147,7 @@ function TopBar() {
         </Link>
         <BusinessSelector />
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <div className="hidden md:block">
-            <Segmented<RangeDays>
-              value={range}
-              onChange={setRange}
-              options={[
-                { value: 7, label: "7d" },
-                { value: 30, label: "30d" },
-                { value: 90, label: "90d" },
-              ]}
-            />
-          </div>
+          <SimulationControl variant="button" />
           <Notifications />
           <AccountMenu />
         </div>
@@ -324,6 +315,12 @@ function AccountMenu() {
             <div className="truncate text-[12px] text-ink-500">{account?.email ?? "Exploring demo workspaces"}</div>
           </div>
           <div className="p-1.5">
+            <MenuItem onClick={() => (router.push("/app/visibility"), setOpen(false))} icon={BarChart3}>
+              Full analysis
+            </MenuItem>
+            <MenuItem onClick={() => (router.push("/app/reports"), setOpen(false))} icon={FileText}>
+              Reports
+            </MenuItem>
             <MenuItem onClick={() => (router.push("/app/settings"), setOpen(false))} icon={Settings}>
               Settings
             </MenuItem>
@@ -363,69 +360,19 @@ function MenuItem({ onClick, icon: Icon, children }: { onClick: () => void; icon
 
 function MobileTabBar() {
   const path = usePathname();
-  const [more, setMore] = useState(false);
-  const { range, setRange } = useStore();
-  const primary = [NAV[0], NAV[1], NAV[2], NAV[4]];
-  const secondary = [NAV[3], NAV[5], { href: "/app/settings", label: "Settings", icon: Settings }];
-  const moreActive = secondary.some((n) => isActive(path, n.href));
-
-  useEffect(() => setMore(false), [path]);
-
   return (
-    <>
-      <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-ink-150 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-        <div className="grid grid-cols-5">
-          {primary.map((n) => {
-            const a = isActive(path, n.href);
-            return (
-              <Link key={n.href} href={n.href} className={clsx("flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium", a ? "text-ink-900" : "text-ink-400")}>
-                <n.icon className="h-5 w-5" strokeWidth={a ? 2.2 : 1.8} />
-                {n.label === "AI Visibility" ? "Visibility" : n.label}
-              </Link>
-            );
-          })}
-          <button onClick={() => setMore(true)} className={clsx("flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium", moreActive ? "text-ink-900" : "text-ink-400")}>
-            <MoreHorizontal className="h-5 w-5" />
-            More
-          </button>
-        </div>
-      </nav>
-      {more && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 animate-fade-in bg-ink-900/30" onClick={() => setMore(false)} />
-          <div className="absolute inset-x-0 bottom-0 animate-slide-up rounded-t-2xl bg-white pb-[calc(env(safe-area-inset-bottom)+16px)] shadow-pop">
-            <div className="flex items-center justify-between px-5 pb-2 pt-4">
-              <span className="text-[15px] font-semibold">More</span>
-              <button onClick={() => setMore(false)} aria-label="Close" className="rounded-full p-1.5 hover:bg-ink-100">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="px-3">
-              {secondary.map((n) => (
-                <Link key={n.href} href={n.href} className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-[15px] hover:bg-ink-50">
-                  <n.icon className="h-5 w-5 text-ink-500" />
-                  {n.label}
-                </Link>
-              ))}
-            </div>
-            <div className="px-2">
-              <SimulationControl variant="sidebar" />
-            </div>
-            <div className="mx-5 mt-1 flex items-center justify-between border-t border-ink-150 pt-4">
-              <span className="text-[13px] text-ink-500">Date range</span>
-              <Segmented<RangeDays>
-                value={range}
-                onChange={setRange}
-                options={[
-                  { value: 7, label: "7 days" },
-                  { value: 30, label: "30 days" },
-                  { value: 90, label: "90 days" },
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-ink-150 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+      <div className="grid grid-cols-4">
+        {NAV.map((n) => {
+          const a = isActive(path, n.href);
+          return (
+            <Link key={n.href} href={n.href} className={clsx("flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium", a ? "text-ink-900" : "text-ink-400")}>
+              <n.icon className="h-5 w-5" strokeWidth={a ? 2.2 : 1.8} />
+              {n.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

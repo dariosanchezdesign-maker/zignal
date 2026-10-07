@@ -10,19 +10,21 @@ change to become the recommendation. The initial market is Puerto Rico.
 
 `Landing → Create account → Business setup → AI Visibility Scan → Results → Recommendations → Monitoring`
 
+The app shows the verdict first and the evidence only on request. A business owner sees three things:
+**does AI recommend me, who does it recommend instead, and what should I do next.**
+
 | Route | What it does |
 | --- | --- |
-| `/` | Landing page (hero, the shift, how it works, industries, CTA) |
+| `/` | Landing page |
 | `/signup` | Account creation (stored locally in this MVP) |
-| `/onboarding` | Industry cards → business details → the generated query set (Ask) |
-| `/scan` | Simulated AI scan of every query, then the results reveal |
-| `/app` | Overview: narrative summary, clickable score ("Why 68?"), score components, history, simulation control, how AI recommends you, competitors, AI perception, opportunities |
-| `/app/visibility` | How AI recommends you · AI perception · Ask AI about my business |
-| `/app/queries` | Query Explorer (intent, location, commercial value, recommended, position, competitor, opportunity); rows open the full AI run |
-| `/app/competitors` | Who AI recommends instead, competitor advantage from rationale patterns, category matrix |
-| `/app/opportunities` | Evidence-backed opportunities with projected impact and status |
-| `/app/reports` | Printable monthly report + weekly snapshots |
-| `/app/settings` | Business profile, tracked competitors, monitoring |
+| `/onboarding` | Industry cards → business details → the generated question set |
+| `/scan` | Simulated AI scan of every question, then the results reveal |
+| `/app` | **Home**: "AI recommends you in X of 10 customer questions", who wins instead, the next step, three real answers |
+| `/app/queries` | **Questions**: AI's answers as conversations; table view with full filters |
+| `/app/competitors` | **Competitors**: who AI picks instead, and the reasons it gives |
+| `/app/opportunities` | **Next steps**: checklist; evidence behind "Show evidence" |
+| `/app/visibility` | **Full analysis**: score breakdown and history, what AI knows you for, Ask AI |
+| `/app/reports`, `/app/settings` | In the account menu |
 
 Three **demo workspaces** (all fictional, clearly labeled) are available from the business selector:
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { ArrowRight, Check, CircleSlash } from "lucide-react";
 import { Button, EntityAvatar, INTENT_LABEL, Logo, ScoreRing, TrustLabel, pct } from "@/components/ui";
-import { RecommendationView } from "@/components/recommendation-view";
+import { ConversationView } from "@/components/conversation";
 import { useStore } from "@/lib/store";
 import { getSubcategory } from "@/lib/industries";
 import type { Workspace as ScanResult } from "@/lib/engine/workspace";
@@ -288,8 +288,8 @@ function Reveal({ scan }: { scan: ScanResult }) {
             </div>
             <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-ink-150">
               <MiniStat label="Questions tested" value={String(scan.queries.length)} />
-              <MiniStat label="Recommended" value={pct(scan.you.recommendation_rate)} />
-              <MiniStat label="Sent elsewhere" value={String(missed)} />
+              <MiniStat label="AI recommends you" value={`${Math.round(scan.you.recommendation_rate * 10)} of 10`} />
+              <MiniStat label="Went to others" value={String(missed)} />
             </div>
           </div>
           {top && (
@@ -301,7 +301,7 @@ function Reveal({ scan }: { scan: ScanResult }) {
                     <EntityAvatar name={c.name} size={28} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-medium">{c.name}</div>
-                      <div className="text-[12px] text-ink-500">Recommended in {pct(c.recommendation_rate)} of queries</div>
+                      <div className="text-[12px] text-ink-500">Recommended in {Math.round(c.recommendation_rate * 10)} of 10 questions</div>
                     </div>
                     <span className="num text-[15px] font-semibold">{c.score}</span>
                   </div>
@@ -313,20 +313,20 @@ function Reveal({ scan }: { scan: ScanResult }) {
 
         <div className="card animate-fade-up p-6 [animation-delay:450ms] sm:p-7">
           <div className="mb-5 flex items-center justify-between">
-            <span className="text-[13px] font-semibold">What AI said when a customer asked</span>
+            <span className="text-[13px] font-semibold">One example of what AI said</span>
             <span className="text-[12px] text-ink-400">1 of {scan.queries.length}</span>
           </div>
-          <RecommendationView outcome={featured} ws={scan} compact />
+          <ConversationView outcome={featured} ws={scan} />
         </div>
       </div>
 
       <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-ink-150 bg-white p-6 sm:flex-row sm:items-center">
         <div>
           <div className="text-[16px] font-semibold tracking-tight">
-            {scan.insights.length} evidence-backed ways to become the business AI recommends
+            Your first next step is ready
           </div>
           <p className="mt-1 text-[14px] text-ink-500">
-            See every question, every competitor, and exactly what to change. We&apos;ll keep monitoring as AI changes.
+            See every answer, who AI picks instead, and exactly what to change.
           </p>
         </div>
         <Button size="lg" onClick={() => router.push("/app")}>

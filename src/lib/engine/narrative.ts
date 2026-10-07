@@ -12,7 +12,6 @@ export interface Narrative {
   highIntentWarning: string | null;
 }
 
-const pct = (n: number) => `${Math.round(n * 100)}%`;
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
@@ -47,23 +46,23 @@ export function buildNarrative(args: {
   const weakest = [...byCat.entries()].filter(([, c]) => c.n >= 2).sort((a, b) => a[1].you / a[1].n - b[1].you / b[1].n)[0];
   const weakestLeader = weakest ? [...weakest[1].best.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] : undefined;
 
-  let strengths = strong.length ? `You're most strongly associated with ${list(strong)}` : "AI doesn't strongly associate you with any one theme yet";
+  let strengths = strong.length ? `AI knows you best for ${list(strong)}` : "AI doesn't clearly know what you're best at yet";
   if (weakest) {
     const label = getCategoryLabel(industry, weakest[0]).toLowerCase();
-    strengths += `, but ${weakestLeader ?? "competitors"} ${weakestLeader ? "outperforms" : "outperform"} you on high-intent ${label} queries.`;
+    strengths += `, but ${weakestLeader ?? "competitors"} ${weakestLeader ? "wins" : "win"} more often when customers are ready to choose, especially for ${label}.`;
   } else strengths += ".";
 
   const first = insights.find((i) => i.status !== "completed");
   return {
     tone,
-    headline: `AI currently recommends ${business.name} in ${pct(you.recommendation_rate)} of relevant queries.`,
+    headline: `AI recommends ${business.name} in ${Math.round(you.recommendation_rate * 10)} of 10 customer questions.`,
     strengths,
-    opportunity: first ? `Your biggest opportunity: ${lowerFirst(first.title)}.` : "You've completed every open opportunity. Run a new simulation to measure the change.",
+    opportunity: first ? `Your biggest opportunity: ${lowerFirst(first.title)}.` : "You've finished every next step. Re-check to measure the change.",
     highIntentWarning:
       you.high_intent_visibility < you.recommendation_rate - 0.06
         ? you.recommendation_rate >= 0.45
-          ? "Your visibility is solid overall, but you're underperforming on the queries closest to a purchase decision."
-          : "Your visibility is limited overall, and weakest on the queries closest to a purchase decision."
+          ? "AI recommends you fairly often, but less when customers are ready to book, buy or hire."
+          : "AI rarely recommends you, and least of all when customers are ready to book, buy or hire."
         : null,
   };
 }

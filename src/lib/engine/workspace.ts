@@ -76,7 +76,7 @@ function effectiveSignals(record: WorkspaceRecord, index: number, state: Record<
     const attributes: Record<string, number> = {};
     for (const [k, v] of Object.entries(s.attributes)) attributes[k] = clamp(v + drift, 0.05, 0.97);
     let authority = clamp(s.authority + drift * 0.6, 0.05, 0.97);
-    for (const [id, st] of Object.entries(state)) {
+    for (const st of Object.values(state)) {
       if (st.status !== "completed" || st.completed_at_index === undefined || index <= st.completed_at_index) continue;
       for (const attr of st.targets ?? []) {
         if (attr === "__authority") authority = clamp(authority + 0.06, 0, 0.97);
