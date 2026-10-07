@@ -22,8 +22,10 @@ import {
 } from "lucide-react";
 import { useStore, type RangeDays } from "@/lib/store";
 import { getIndustry } from "@/lib/industries";
-import { DemoBadge, Logo, Segmented } from "./ui";
-import type { ScanResult } from "@/lib/types";
+import { Logo, Segmented, TrustLabel } from "./ui";
+import type { Business } from "@/lib/model/types";
+import type { Workspace } from "@/lib/engine/workspace";
+import { SimulationControl } from "./simulation-control";
 
 const NAV = [
   { href: "/app", label: "Overview", icon: LayoutGrid },
@@ -38,7 +40,8 @@ const isActive = (path: string, href: string) => (href === "/app" ? path === "/a
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { active, hydrated } = useStore();
+  const { ws, hydrated } = useStore();
+  const active = ws.business;
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -56,26 +59,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="!my-4 mx-2.5 h-px bg-ink-150" />
           <NavLink href="/app/settings" label="Settings" icon={Settings} active={path.startsWith("/app/settings")} />
         </nav>
-        <div className="m-3 rounded-xl border border-ink-150 bg-white p-3.5">
-          <div className="flex items-center gap-2 text-[12px] font-medium text-ink-800">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-40" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-positive" />
-            </span>
-            Monitoring active
-          </div>
-          <p className="mt-1 text-[11.5px] leading-snug text-ink-500">Questions re-tested daily. Next scan in 6h.</p>
-        </div>
+        {hydrated && <SimulationControl variant="sidebar" />}
       </aside>
 
       <div className="lg:pl-[232px]">
         <TopBar />
-        {hydrated && active.isDemo && (
+        {hydrated && active.is_demo && (
           <div className="no-print border-b border-caution-100 bg-caution-50/60">
             <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-4 py-2 text-[12.5px] text-ink-600 sm:px-8">
               <span className="flex items-center gap-2">
-                <DemoBadge />
-                <span className="hidden sm:inline">Fictional business with simulated data — switch businesses to see how each industry changes.</span>
+                <TrustLabel kind="demo" />
+                <span className="hidden sm:inline">Fictional businesses. All results are simulated AI tests, not live observations.</span>
               </span>
               <Link href="/signup" className="shrink-0 font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
                 Scan your business
@@ -173,12 +167,14 @@ function TopBar() {
 
 function BusinessSelector() {
   const router = useRouter();
-  const { workspaces, active, setActive, account } = useStore();
+  const { workspaces: records, ws, setActive, account } = useStore();
+  const active = ws.business;
+  const workspaces = records.map((r) => r.business);
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
   const ind = getIndustry(active.industry);
-  const own = workspaces.filter((w) => !w.isDemo);
-  const demos = workspaces.filter((w) => w.isDemo);
+  const own = workspaces.filter((w) => !w.is_demo);
+  const demos = workspaces.filter((w) => w.is_demo);
 
   return (
     <div ref={ref} className="relative min-w-0">
@@ -230,7 +226,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function WorkspaceItem({ w, active, onClick }: { w: ScanResult["business"]; active: boolean; onClick: () => void }) {
+function WorkspaceItem({ w, active, onClick }: { w: Business; active: boolean; onClick: () => void }) {
   const ind = getIndustry(w.industry);
   return (
     <button onClick={onClick} className={clsx("flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-ink-50", active && "bg-ink-50")}>
@@ -247,10 +243,10 @@ function WorkspaceItem({ w, active, onClick }: { w: ScanResult["business"]; acti
 }
 
 function Notifications() {
-  const { scan } = useStore();
+  const { ws } = useStore();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
-  const items = buildNotifications(scan);
+  const items = buildNotifications(ws);
 
   return (
     <div ref={ref} className="relative">
@@ -266,7 +262,7 @@ function Notifications() {
         <div className="fixed inset-x-3 top-16 z-40 animate-fade-up overflow-hidden rounded-xl border border-ink-150 bg-white shadow-pop sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px]">
           <div className="flex items-center justify-between border-b border-ink-150 px-4 py-3">
             <span className="text-[13px] font-semibold">Visibility alerts</span>
-            <span className="text-[11.5px] text-ink-400">Last 7 days</span>
+            <TrustLabel kind="simulated" />
           </div>
           <ul className="max-h-[60vh] divide-y divide-ink-100 overflow-auto">
             {items.map((n, i) => (
@@ -285,15 +281,23 @@ function Notifications() {
   );
 }
 
-function buildNotifications(scan: ScanResult) {
+function buildNotifications(ws: Workspace) {
   const out: { text: string; when: string; tone: "pos" | "neg" | "neutral" }[] = [];
-  const down = scan.queries.find((q) => q.delta < 0 && q.winnerId !== "you");
-  const up = scan.queries.find((q) => q.delta > 0);
-  if (down) out.push({ text: `${down.winnerName} moved ahead of you on “${down.text}”`, when: "2 hours ago", tone: "neg" });
-  if (up) out.push({ text: `You moved up to #${up.position} on “${up.text}”`, when: "Yesterday", tone: "pos" });
-  const opp = scan.opportunities[0];
-  if (opp) out.push({ text: `New high-impact opportunity: ${opp.title}`, when: "2 days ago", tone: "neutral" });
-  out.push({ text: `Weekly scan complete — ${scan.queries.length} questions re-tested`, when: "3 days ago", tone: "neutral" });
+  const h = ws.history;
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (h.length >= 2) {
+    const d = h[h.length - 1].score - h[h.length - 2].score;
+    out.push({
+      text: d === 0 ? `AI Visibility Score unchanged at ${ws.you.score} in the latest simulation` : `AI Visibility Score ${d > 0 ? "rose" : "fell"} ${Math.abs(d)} pts to ${ws.you.score}`,
+      when: fmt(ws.latest.run_date),
+      tone: d > 0 ? "pos" : d < 0 ? "neg" : "neutral",
+    });
+  }
+  const threat = ws.insights.find((i) => i.type === "competitive-threat");
+  if (threat) out.push({ text: threat.observation, when: fmt(ws.latest.run_date), tone: "neg" });
+  const open = ws.insights.filter((i) => i.status !== "completed").length;
+  out.push({ text: `${open} open opportunities from the latest simulation`, when: fmt(ws.latest.run_date), tone: "neutral" });
+  out.push({ text: `Simulation complete: ${ws.queries.length} queries tested`, when: fmt(ws.latest.run_date), tone: "neutral" });
   return out;
 }
 
@@ -404,7 +408,10 @@ function MobileTabBar() {
                 </Link>
               ))}
             </div>
-            <div className="mx-5 mt-3 flex items-center justify-between border-t border-ink-150 pt-4">
+            <div className="px-2">
+              <SimulationControl variant="sidebar" />
+            </div>
+            <div className="mx-5 mt-1 flex items-center justify-between border-t border-ink-150 pt-4">
               <span className="text-[13px] text-ink-500">Date range</span>
               <Segmented<RangeDays>
                 value={range}

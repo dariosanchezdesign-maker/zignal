@@ -9,31 +9,31 @@ import { useStore } from "@/lib/store";
 
 const HERO_EXAMPLES = [
   {
-    q: "Best boutique hotels in Condado for couples?",
+    q: "Best boutique hotel in Condado for an anniversary?",
     intro: "For a romantic stay in Condado, these are frequently recommended:",
-    list: ["The Solano Condado", "Casa Marea Hotel", "Villa Coralina Resort", "Hotel Arenisca"],
+    list: ["The Solano Condado", "Casa Maré", "Villa Coralina Resort", "Hotel Arenisca"],
     you: 1,
     note: "Ocean-view rooms, rooftop bar, walkable to the beach",
   },
   {
-    q: "Who are the best accounting firms in San Juan for small businesses?",
-    intro: "Small businesses in San Juan often work with:",
-    list: ["Montalvo Advisory Group", "Cruz Pagán & Associates", "Rivera Colón CPA Group", "Bayview Tax Partners"],
+    q: "Best CPA in San Juan for a growing construction company?",
+    intro: "Growing construction companies in San Juan often work with:",
+    list: ["Montalvo Advisory Group", "Cumbre Advisory", "Cruz Pagán & Associates", "Bayview Tax Partners"],
     you: 2,
-    note: "Bilingual tax planning, strong local presence",
+    note: "Hands-on advisory for growing companies, bilingual service",
   },
   {
-    q: "Which developers build the best luxury condos in Puerto Rico?",
-    intro: "Developers with a strong luxury track record include:",
-    list: ["Costa Norte Developments", "Atlántico Realty Group", "Palmar Living", "Bahía Development Co."],
+    q: "Where should I invest in Puerto Rico for long-term rental income?",
+    intro: "Developers frequently recommended for rental investors:",
+    list: ["Isla Capital Development", "Costa Norte Developments", "Palmar Living Group", "Bahía Development Co."],
     you: 0,
-    note: "Delivered beachfront projects, documented portfolio",
+    note: "Strong rental-income potential, clear guidance for investors",
   },
 ];
 
 export default function Landing() {
-  const { account, profiles } = useStore();
-  const ctaHref = account ? (profiles.length ? "/app" : "/onboarding") : "/signup";
+  const { account, records } = useStore();
+  const ctaHref = account ? (records.length ? "/app" : "/onboarding") : "/signup";
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -65,14 +65,13 @@ export default function Landing() {
               <span className="h-1.5 w-1.5 rounded-full bg-accent-600" />
               AI Visibility Intelligence · Now in Puerto Rico
             </div>
-            <h1 className="text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-ink-900 sm:text-[60px]">
-              Does AI recommend
-              <br />
-              your business?
+            <h1 className="text-balance text-[38px] font-semibold leading-[1.04] tracking-[-0.035em] text-ink-900 sm:text-[54px]">
+              Your customers are already asking AI who to choose.
             </h1>
-            <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-ink-600">
-              Customers are asking AI who to hire, where to stay, what to buy, and where to invest. See where your business appears — and what it
-              takes to become the recommendation.
+            <p className="mt-5 text-[22px] font-medium tracking-tight text-ink-900 sm:text-[26px]">We show you whether AI chooses you.</p>
+            <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-ink-600">
+              AI recommendations are becoming a measurable layer of customer acquisition. See which questions customers ask, who AI recommends, how often it
+              recommends you, and what to change.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button href={ctaHref} size="lg">
@@ -82,7 +81,7 @@ export default function Landing() {
                 See an Example
               </Button>
             </div>
-            <p className="mt-5 text-[13px] text-ink-400">Free visibility scan · Results in about a minute · No credit card</p>
+            <p className="mt-5 text-[13px] text-ink-400">Free simulated scan · Results in about a minute · No credit card</p>
           </div>
           <HeroVisual />
         </div>
@@ -95,8 +94,8 @@ export default function Landing() {
             <div className="eyebrow mb-3">The shift</div>
             <h2 className="text-[34px] font-semibold leading-tight tracking-[-0.025em] sm:text-[40px]">Search is becoming conversation.</h2>
             <p className="mt-4 text-[16px] leading-relaxed text-ink-600">
-              Google created an economy around search rankings. AI is creating an economy around recommendations — and an answer usually names
-              only a handful of businesses.
+              Google created an economy around search rankings. AI is creating an economy around recommendations. An answer usually names only a
+              handful of businesses, and that shortlist can be measured: how often you appear, where you rank, and who wins instead.
             </p>
           </div>
           <div className="mt-12 grid gap-4 lg:grid-cols-2">

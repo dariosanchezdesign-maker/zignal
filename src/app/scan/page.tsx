@@ -4,17 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { ArrowRight, Check, CircleSlash } from "lucide-react";
-import { Button, EntityAvatar, INTENT_LABEL, Logo, ScoreRing, pct } from "@/components/ui";
-import { QueryAnswer } from "@/components/query-answer";
+import { Button, EntityAvatar, INTENT_LABEL, Logo, ScoreRing, TrustLabel, pct } from "@/components/ui";
+import { RecommendationView } from "@/components/recommendation-view";
 import { useStore } from "@/lib/store";
-import { getCategory } from "@/lib/industries";
-import type { ScanResult } from "@/lib/types";
+import { getSubcategory } from "@/lib/industries";
+import type { Workspace as ScanResult } from "@/lib/engine/workspace";
+import type { QueryOutcome } from "@/lib/model/types";
 
 const STAGES = [
   { t: "Understanding your business", ms: 1500 },
   { t: "Identifying your customers", ms: 1400 },
-  { t: "Generating commercial questions", ms: 2600 },
-  { t: "Testing AI recommendations", ms: 4200 },
+  { t: "Generating customer questions", ms: 2600 },
+  { t: "Running simulated AI tests", ms: 4200 },
   { t: "Analyzing competitors", ms: 2000 },
   { t: "Measuring your visibility", ms: 1600 },
   { t: "Finding opportunities", ms: 1300 },
@@ -22,9 +23,9 @@ const STAGES = [
 const TOTAL = STAGES.reduce((a, s) => a + s.ms, 0);
 
 export default function ScanPage() {
-  const { hydrated, pendingScanId, activeId, scanFor, setActive, setPendingScan } = useStore();
+  const { hydrated, pendingScanId, activeId, workspaceFor, setActive, setPendingScan } = useStore();
   const id = pendingScanId ?? activeId;
-  const scan = useMemo(() => (hydrated ? scanFor(id) : null), [hydrated, id, scanFor]);
+  const scan = useMemo(() => (hydrated ? workspaceFor(id) : null), [hydrated, id, workspaceFor]);
   const [elapsed, setElapsed] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
@@ -79,14 +80,15 @@ function stageState(elapsed: number) {
 
 function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
   const { index, progress } = stageState(elapsed);
-  const { business, industry, queries } = scan;
-  const cat = getCategory(industry, business.category);
+  const { business, industry } = scan;
+  const queries = scan.outcomes;
+  const cat = getSubcategory(industry, business.subcategory);
   const overall = Math.min(1, elapsed / TOTAL);
 
   // Live feed contents per stage.
   const shownQueries = index < 2 ? 0 : index === 2 ? Math.ceil(progress * Math.min(queries.length, 14)) : Math.min(queries.length, 14);
   const tested = index < 3 ? 0 : index === 3 ? Math.floor(progress * queries.length) : queries.length;
-  const compsShown = index < 4 ? 0 : index === 4 ? Math.ceil(progress * scan.competitors.length) : scan.competitors.length;
+  const compsShown = index < 4 ? 0 : index === 4 ? Math.ceil(progress * scan.competitorMetrics.length) : scan.competitorMetrics.length;
 
   return (
     <main className="mx-auto max-w-6xl px-5 pb-16 pt-6 sm:px-8 sm:pt-12">
@@ -143,7 +145,7 @@ function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
                 {index >= 1 && (
                   <>
                     <FeedLine label="Customers" value={industry.audience} />
-                    <FeedLine label="Looking for" value={business.primaryService || cat.services[0]} />
+                    <FeedLine label="Looking for" value={business.services[0] || cat.services[0]} />
                   </>
                 )}
               </div>
@@ -154,13 +156,13 @@ function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
                 {queries.slice(0, Math.max(shownQueries, 1)).map((q, i) => {
                   const result = i < tested ? q : null;
                   return (
-                    <div key={q.id} className="flex animate-fade-up items-center gap-3 rounded-lg px-2 py-1.5 text-[13px]">
-                      <span className="w-[86px] shrink-0 font-mono text-[10.5px] uppercase tracking-wide text-ink-400">{INTENT_LABEL[q.intent]}</span>
-                      <span className="min-w-0 flex-1 truncate text-ink-700">{q.text}</span>
+                    <div key={q.query.id} className="flex animate-fade-up items-center gap-3 rounded-lg px-2 py-1.5 text-[13px]">
+                      <span className="w-[86px] shrink-0 font-mono text-[10.5px] uppercase tracking-wide text-ink-400">{INTENT_LABEL[q.query.intent_type]}</span>
+                      <span className="min-w-0 flex-1 truncate text-ink-700">{q.query.text}</span>
                       {result ? (
-                        result.position ? (
-                          <span className={clsx("num shrink-0 rounded px-1.5 text-[11.5px] font-semibold", result.position <= 3 ? "bg-accent-50 text-accent-700" : "bg-caution-50 text-caution")}>
-                            #{result.position}
+                        result.you?.position ? (
+                          <span className={clsx("num shrink-0 rounded px-1.5 text-[11.5px] font-semibold", result.you.position <= 2 ? "bg-accent-50 text-accent-700" : "bg-caution-50 text-caution")}>
+                            #{result.you.position}
                           </span>
                         ) : (
                           <CircleSlash className="h-3.5 w-3.5 shrink-0 text-negative" />
@@ -180,7 +182,7 @@ function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
             {index >= 4 && (
               <div className="space-y-2">
                 <div className="mb-3 text-[13px] text-ink-500">Businesses AI recommends for these questions</div>
-                {[{ id: "you", name: business.name, rate: scan.you.recommendationRate, you: true }, ...scan.competitors.slice(0, compsShown).map((c) => ({ id: c.id, name: c.name, rate: c.recommendationRate, you: false }))]
+                {[{ id: "you", name: business.name, rate: scan.you.recommendation_rate, you: true }, ...scan.competitorMetrics.slice(0, compsShown).map((c) => ({ id: c.entity_id, name: c.name, rate: c.recommendation_rate, you: false }))]
                   .sort((a, b) => b.rate - a.rate)
                   .map((e) => (
                     <div key={e.id} className="flex animate-fade-up items-center gap-3">
@@ -197,7 +199,7 @@ function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
                   ))}
                 {index >= 6 && (
                   <div className="mt-5 animate-fade-up rounded-lg border border-ink-150 bg-ink-50 px-3 py-2.5 text-[13px] text-ink-600">
-                    {scan.opportunities.length} opportunities found · up to +{scan.opportunities.reduce((a, o) => a + o.expectedLift, 0)} visibility points
+                    {scan.insights.length} evidence-backed opportunities found
                   </div>
                 )}
               </div>
@@ -212,19 +214,19 @@ function Scanning({ scan, elapsed }: { scan: ScanResult; elapsed: number }) {
 function stageSummary(i: number, scan: ScanResult) {
   switch (i) {
     case 0:
-      return getCategory(scan.industry, scan.business.category).label;
+      return getSubcategory(scan.industry, scan.business.subcategory).label;
     case 1:
       return scan.industry.audience.split(" ")[0];
     case 2:
       return `${scan.queries.length} questions`;
     case 3:
-      return `${scan.queries.filter((q) => q.mentioned).length} mentions`;
+      return `${scan.runs.length} AI runs`;
     case 4:
-      return `${scan.competitors.length} competitors`;
+      return `${scan.competitorMetrics.length} competitors`;
     case 5:
       return `${scan.you.score}/100`;
     case 6:
-      return `${scan.opportunities.length} found`;
+      return `${scan.insights.length} found`;
   }
   return "";
 }
@@ -257,18 +259,21 @@ function useCountUp(target: number, ms = 1400) {
 function Reveal({ scan }: { scan: ScanResult }) {
   const router = useRouter();
   const score = useCountUp(scan.you.score);
-  const top = scan.competitors[0];
-  const missed = scan.queries.filter((q) => !q.recommended).length;
+  const top = scan.competitorMetrics[0];
+  const missed = scan.outcomes.filter((o) => !o.you?.recommended).length;
 
   // The most revealing question: high-intent, competitor wins, you're absent.
   const featured =
-    [...scan.queries].sort((a, b) => revealWeight(b) - revealWeight(a))[0] ?? scan.queries[0];
+    [...scan.outcomes].sort((a, b) => revealWeight(b) - revealWeight(a))[0] ?? scan.outcomes[0];
 
   return (
     <main className="mx-auto max-w-6xl px-5 pb-20 pt-4 sm:px-8 sm:pt-10">
       <div className="animate-fade-up">
-        <div className="eyebrow mb-3">Your AI Visibility Scan is ready</div>
-        <h1 className="max-w-3xl text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[42px]">{scan.story.headline}</h1>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="eyebrow">Your AI Visibility Scan is ready</span>
+          <TrustLabel kind="simulated" />
+        </div>
+        <h1 className="max-w-3xl text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[42px]">{scan.narrative.headline}</h1>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -278,12 +283,12 @@ function Reveal({ scan }: { scan: ScanResult }) {
               <ScoreRing score={score} size={136} />
               <div>
                 <div className="eyebrow">AI Visibility Score</div>
-                <p className="mt-2 text-[14px] leading-relaxed text-ink-600">{scan.story.detail}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-600">{scan.narrative.strengths}</p>
               </div>
             </div>
             <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-ink-150">
               <MiniStat label="Questions tested" value={String(scan.queries.length)} />
-              <MiniStat label="Recommended" value={pct(scan.you.recommendationRate)} />
+              <MiniStat label="Recommended" value={pct(scan.you.recommendation_rate)} />
               <MiniStat label="Sent elsewhere" value={String(missed)} />
             </div>
           </div>
@@ -291,12 +296,12 @@ function Reveal({ scan }: { scan: ScanResult }) {
             <div className="card animate-fade-up p-6 [animation-delay:300ms]">
               <div className="eyebrow mb-4">Who AI recommends instead</div>
               <div className="space-y-3">
-                {scan.competitors.slice(0, 3).map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
+                {scan.competitorMetrics.slice(0, 3).map((c) => (
+                  <div key={c.entity_id} className="flex items-center gap-3">
                     <EntityAvatar name={c.name} size={28} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-medium">{c.name}</div>
-                      <div className="text-[12px] text-ink-500">Recommended in {pct(c.recommendationRate)} of questions</div>
+                      <div className="text-[12px] text-ink-500">Recommended in {pct(c.recommendation_rate)} of queries</div>
                     </div>
                     <span className="num text-[15px] font-semibold">{c.score}</span>
                   </div>
@@ -311,14 +316,14 @@ function Reveal({ scan }: { scan: ScanResult }) {
             <span className="text-[13px] font-semibold">What AI said when a customer asked</span>
             <span className="text-[12px] text-ink-400">1 of {scan.queries.length}</span>
           </div>
-          <QueryAnswer query={featured} businessName={scan.business.name} compact />
+          <RecommendationView outcome={featured} ws={scan} compact />
         </div>
       </div>
 
       <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-ink-150 bg-white p-6 sm:flex-row sm:items-center">
         <div>
           <div className="text-[16px] font-semibold tracking-tight">
-            {scan.opportunities.length} ways to become the business AI recommends
+            {scan.insights.length} evidence-backed ways to become the business AI recommends
           </div>
           <p className="mt-1 text-[14px] text-ink-500">
             See every question, every competitor, and exactly what to change. We&apos;ll keep monitoring as AI changes.
@@ -332,7 +337,8 @@ function Reveal({ scan }: { scan: ScanResult }) {
   );
 }
 
-function revealWeight(q: ScanResult["queries"][number]) {
+function revealWeight(o: QueryOutcome) {
+  const q = { intent: o.query.intent_type, position: o.you?.recommended ? o.you.position : null, mentioned: !!o.you };
   const intent = q.intent === "high-intent" ? 3 : q.intent === "comparison" ? 2 : 1;
   const absent = q.position === null ? 3 : q.position > 2 ? 2 : 0;
   return intent + absent * 2 + (q.mentioned ? 0.5 : 0);

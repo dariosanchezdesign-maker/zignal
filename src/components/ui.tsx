@@ -2,27 +2,24 @@
 
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import type { Intent, Level, OpportunityStatus } from "@/lib/types";
+import { ArrowDownRight, ArrowUpRight, FlaskConical, Minus, Radio, Sparkles } from "lucide-react";
+import type { CommercialValue, InsightStatus, IntentType, Severity } from "@/lib/model/types";
+import { COMMERCIAL_LABEL, INTENT_LABEL } from "@/lib/engine/queries";
+
+export { INTENT_LABEL };
+type Level = Severity;
+type OpportunityStatus = InsightStatus;
 
 export const pct = (n: number) => `${Math.round(n * 100)}%`;
 export const fmtPos = (n: number | null) => (n === null ? "—" : n.toFixed(1));
 
-export const INTENT_LABEL: Record<Intent, string> = {
-  discovery: "Discovery",
-  comparison: "Comparison",
-  "high-intent": "High intent",
-  local: "Local",
-  transactional: "Transactional",
-  problem: "Problem-based",
-};
-
-export const INTENT_HINT: Record<Intent, string> = {
+export const INTENT_HINT: Record<IntentType, string> = {
   discovery: "Exploring options",
+  "best-of": "Asking for the best",
   comparison: "Weighing alternatives",
   "high-intent": "Ready to choose",
   local: "Looking nearby",
-  transactional: "Ready to book or buy",
+  transactional: "Ready to book or hire",
   problem: "Trying to solve something",
 };
 
@@ -112,8 +109,33 @@ export function ImpactBadge({ level, prefix = "" }: { level: Level; prefix?: str
   );
 }
 
-export function IntentBadge({ intent }: { intent: Intent }) {
+export function IntentBadge({ intent }: { intent: IntentType }) {
   return <Badge tone="neutral">{INTENT_LABEL[intent]}</Badge>;
+}
+
+export function ValueBadge({ value }: { value: CommercialValue }) {
+  const tone: Tone = value === "very-high" ? "ink" : value === "high" ? "accent" : "neutral";
+  return <Badge tone={tone}>{COMMERCIAL_LABEL[value]} value</Badge>;
+}
+
+/**
+ * Trust labels. These concepts are never blended: demo data, simulated
+ * tests, AI-generated interpretation and (future) live observations.
+ */
+export function TrustLabel({ kind, className }: { kind: "demo" | "simulated" | "diagnosis" | "live"; className?: string }) {
+  const map = {
+    demo: { label: "Demo workspace", icon: null, cls: "border-caution-100 bg-caution-50 text-caution" },
+    simulated: { label: "Simulated AI test", icon: FlaskConical, cls: "border-ink-200 bg-white text-ink-600" },
+    diagnosis: { label: "AI-generated diagnosis", icon: Sparkles, cls: "border-accent-100 bg-accent-50 text-accent-700" },
+    live: { label: "Live AI observation", icon: Radio, cls: "border-positive-100 bg-positive-50 text-positive" },
+  }[kind];
+  const Icon = map.icon;
+  return (
+    <span className={clsx("inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wider", map.cls, className)}>
+      {Icon && <Icon className="h-3 w-3" strokeWidth={2} />}
+      {map.label}
+    </span>
+  );
 }
 
 export const STATUS_LABEL: Record<OpportunityStatus, string> = {
@@ -132,16 +154,7 @@ export function StatusBadge({ status }: { status: OpportunityStatus }) {
 }
 
 export function DemoBadge({ className }: { className?: string }) {
-  return (
-    <span
-      className={clsx(
-        "inline-flex items-center gap-1.5 rounded-md border border-caution-100 bg-caution-50 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wider text-caution",
-        className,
-      )}
-    >
-      Demo workspace
-    </span>
-  );
+  return <TrustLabel kind="demo" className={className} />;
 }
 
 export function Delta({ value, suffix = "", invert = false, className }: { value: number; suffix?: string; invert?: boolean; className?: string }) {

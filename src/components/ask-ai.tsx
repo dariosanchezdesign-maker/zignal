@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { ArrowUp, Check, CircleHelp, Sparkles, X } from "lucide-react";
-import type { ScanResult } from "@/lib/types";
+import type { Workspace } from "@/lib/engine/workspace";
 import { askAboutBusiness, askExamples, type PerceptionAnswer } from "@/lib/engine/ask";
-import { EntityAvatar, pct } from "./ui";
+import { EntityAvatar, TrustLabel, pct } from "./ui";
 
 const THINKING = ["Reading what AI knows about", "Matching your question to customer intent", "Comparing against competitors", "Checking for missing information"];
 
-export function AskAI({ scan }: { scan: ScanResult }) {
+export function AskAI({ ws }: { ws: Workspace }) {
+  const scan = ws;
   const [input, setInput] = useState("");
   const [answer, setAnswer] = useState<PerceptionAnswer | null>(null);
   const [thinking, setThinking] = useState(-1);
-  const examples = askExamples(scan);
+  const examples = askExamples(ws);
 
   useEffect(() => {
     setAnswer(null);
@@ -29,7 +30,7 @@ export function AskAI({ scan }: { scan: ScanResult }) {
     setThinking(0);
     THINKING.forEach((_, i) => setTimeout(() => setThinking(i), i * 520));
     setTimeout(() => {
-      setAnswer(askAboutBusiness(scan, q));
+      setAnswer(askAboutBusiness(ws, q));
       setThinking(-1);
     }, THINKING.length * 520 + 200);
   }
@@ -123,17 +124,21 @@ function Perception({ answer, name }: { answer: PerceptionAnswer; name: string }
       <div className="card animate-fade-up overflow-hidden">
         <div className="grid md:grid-cols-[minmax(0,1fr)_260px]">
           <div className="p-6 sm:p-7">
-            <div className="eyebrow">What AI currently understands about your business</div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="eyebrow">What AI currently understands about your business</div>
+              <TrustLabel kind="diagnosis" />
+            </div>
             <p className="mt-3 min-h-[96px] text-[16px] leading-relaxed text-ink-800 sm:text-[17px]">
               {typed}
               {typed.length < answer.understanding.length && <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulsedot bg-ink-900" />}
             </p>
             <div className="mt-4 flex flex-wrap gap-1.5">
-              {answer.topics.map((t) => (
+              {answer.attributes.map((t) => (
                 <span key={t.id} className="rounded-md bg-ink-100 px-2 py-0.5 text-[11.5px] font-medium text-ink-600">
                   {t.label}
                 </span>
               ))}
+              <TrustLabel kind="simulated" />
             </div>
           </div>
           <div className="flex flex-col justify-center border-t border-ink-150 bg-ink-50/70 p-6 md:border-l md:border-t-0">
@@ -155,6 +160,7 @@ function Perception({ answer, name }: { answer: PerceptionAnswer; name: string }
               ))}
             </div>
             <p className="mt-3 text-[13px] leading-snug text-ink-600">{answer.verdict}</p>
+            <p className="mt-2 text-[11.5px] text-ink-400">Based on {answer.basedOn.queries} simulated AI runs for similar questions.</p>
           </div>
         </div>
       </div>
@@ -181,7 +187,7 @@ function Perception({ answer, name }: { answer: PerceptionAnswer; name: string }
             </Row>
           ))}
         </Panel>
-        <Panel title="Competitors AI considers" subtitle="For this kind of question" delay={450}>
+        <Panel title="Competitors AI recommends" subtitle="Share of similar questions where each is recommended" delay={450}>
           {answer.competitors.length ? (
             answer.competitors.map((c) => (
               <div key={c.name} className="flex items-center gap-3 py-1">

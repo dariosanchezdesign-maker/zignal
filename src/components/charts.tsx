@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { TrendPoint } from "@/lib/types";
+export interface TrendPoint {
+  date: string; // ISO
+  score: number;
+}
 
-const fmtDate = (iso: string) =>
-  new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 /** Single-series trend line with crosshair + tooltip. */
 export function TrendChart({ points, height = 200 }: { points: TrendPoint[]; height?: number }) {
