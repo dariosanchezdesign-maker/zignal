@@ -86,9 +86,11 @@ export default function QueryExplorer() {
         title="Query Explorer"
         description="Every customer question we monitor, what AI answered, and where you stand."
         action={
+          process.env.NEXT_PUBLIC_EMBED === "1" ? undefined : (
           <Button variant="secondary" size="sm" onClick={exportCsv}>
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
+          )
         }
       />
 

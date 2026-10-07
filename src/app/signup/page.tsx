@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -48,9 +49,9 @@ export default function SignUp() {
         </div>
         <p className="mt-6 text-center text-[13px] text-ink-500">
           Just looking?{" "}
-          <a href="/app" className="font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
+          <Link href="/app" className="font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
             Explore a demo workspace
-          </a>
+          </Link>
         </p>
       </div>
     </FlowShell>

@@ -26,6 +26,7 @@ export default function Reports() {
           title="Reports"
           description="A monthly summary you can share with your team, partners or clients."
           action={
+            process.env.NEXT_PUBLIC_EMBED === "1" ? undefined : (
             <div className="flex gap-2">
               <Button
                 variant="secondary"
@@ -42,6 +43,7 @@ export default function Reports() {
                 <Printer className="h-3.5 w-3.5" /> Download PDF
               </Button>
             </div>
+            )
           }
         />
       </div>
