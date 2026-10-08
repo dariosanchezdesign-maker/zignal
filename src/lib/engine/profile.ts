@@ -15,6 +15,9 @@ export interface NewBusinessInput {
   competitors: string[];
 }
 
+/** Minimum starting attribute strength for a new business. */
+const NEW_BUSINESS_FLOOR = 0.44;
+
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -47,8 +50,11 @@ export function createBusiness(input: NewBusinessInput): Business {
 
 /**
  * Builds the simulation state for a new business. Attribute strengths start
- * from the subcategory baseline, are raised for what the business says it
- * offers, and vary deterministically by business.
+ * from the subcategory baseline (with a neutral floor, since AI knows a real
+ * local business at least moderately), are raised for what the business says
+ * it offers, and vary deterministically by business. Calibrated so a typical
+ * new business is recommended in roughly 4–5 of 10 questions, with clear
+ * room to improve against the strongest competitor.
  */
 export function createWorkspaceRecord(input: NewBusinessInput): WorkspaceRecord {
   const business = createBusiness(input);
@@ -60,9 +66,10 @@ export function createWorkspaceRecord(input: NewBusinessInput): WorkspaceRecord 
   const attributes: Record<string, number> = {};
   for (const a of industry.attributes) {
     const claimed = a.keywords.some((k) => text.includes(k)) ? 0.22 : 0;
-    attributes[a.id] = clamp((sub.base[a.id] ?? 0.36) + claimed + (r() - 0.5) * 0.24, 0.1, 0.9);
+    const base = Math.max(sub.base[a.id] ?? 0, NEW_BUSINESS_FLOOR);
+    attributes[a.id] = clamp(base + claimed + (r() - 0.5) * 0.16, 0.1, 0.9);
   }
-  const authority = clamp(0.46 + r() * 0.1 + (business.website ? 0.03 : -0.05));
+  const authority = clamp(0.54 + r() * 0.08 + (business.website ? 0.03 : -0.03));
 
   const market = industry.marketNames[sub.group] ?? Object.values(industry.marketNames)[0];
   const named = input.competitors.map((c) => c.trim()).filter(Boolean);
@@ -90,8 +97,8 @@ export function createWorkspaceRecord(input: NewBusinessInput): WorkspaceRecord 
     competitors,
     signals: [
       { entity_id: "you", name: business.name, location: business.location, authority, attributes },
-      ...competitors.map((c, i) => profile(c.id, c.name, c.location, 0.32 + (i === 0 ? 0.06 : 0), 0.46, 0.52)),
-      ...otherNames.map((n, i) => profile(`o${i + 1}`, n, "San Juan", 0.28, 0.4, 0.44)),
+      ...competitors.map((c, i) => profile(c.id, c.name, c.location, 0.34 + (i === 0 ? 0.06 : 0), 0.4, 0.5)),
+      ...otherNames.map((n, i) => profile(`o${i + 1}`, n, "San Juan", 0.28, 0.36, 0.42)),
     ],
     history_days: 0,
     baseline_date: new Date().toISOString(),
