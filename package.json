@@ -2,12 +2,14 @@
   "name": "zignal",
   "version": "0.1.0",
   "private": true,
-  "description": "Zignal — AI Visibility Intelligence. See how AI recommends your business.",
+  "description": "Zignal \u2014 AI Visibility Intelligence. See how AI recommends your business.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ai-index": "tsx tools/ai-index/src/cli.ts",
+    "ai-index:typecheck": "tsc -p tools/ai-index/tsconfig.json"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -18,6 +20,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -25,6 +28,8 @@
     "esbuild": "^0.25.12",
     "postcss": "^8.5.29",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3"
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "zod": "^4.6.7"
   }
 }
